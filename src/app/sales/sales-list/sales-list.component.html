@@ -26,19 +26,22 @@
         <!-- Meta Row 2: Supplier + Status -->
         <div class="row g-3 mt-0">
           <div class="col-md-6">
-            <label class="form-label d-flex justify-content-between align-items-center">
-              <span>Supplier</span>
+            <label class="form-label">Supplier</label>
+            <select class="form-select" formControlName="supplierId">
+              <option value="" disabled>Select supplier</option>
+              <option *ngFor="let s of suppliers" [value]="s.id">{{ s.name }}</option>
+            </select>
+
+            <!-- New button moved under the dropdown -->
+            <div class="mt-2">
               <button type="button"
                       class="btn btn-sm btn-outline-primary"
                       data-bs-toggle="modal"
                       data-bs-target="#addSupplierModal">
                 <i class="bi bi-plus-lg"></i> New
               </button>
-            </label>
-            <select class="form-select" formControlName="supplierId">
-              <option value="" disabled>Select supplier</option>
-              <option *ngFor="let s of suppliers" [value]="s.id">{{ s.name }}</option>
-            </select>
+            </div>
+
             <div class="form-text" *ngIf="!suppliers?.length">
               No suppliers yet — click <b>New</b> to add.
             </div>
@@ -65,9 +68,6 @@
         <div class="mt-4">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h6 class="mb-0">Items</h6>
-            <button type="button" class="btn btn-outline-primary btn-sm" (click)="addItem()">
-              <i class="bi bi-plus-lg"></i> Add Item
-            </button>
           </div>
 
           <div formArrayName="items" class="table-responsive">
@@ -120,6 +120,13 @@
                 </tr>
               </tfoot>
             </table>
+          </div>
+
+          <!-- Add Item button UNDER the items table, aligned to Product column width -->
+          <div class="mt-2" style="width: 10%;">
+            <button type="button" class="btn btn-outline-primary btn-sm w-100" (click)="addItem()">
+              <i class="bi bi-plus-lg"></i> Add Item
+            </button>
           </div>
         </div>
 
@@ -184,27 +191,27 @@
       </div>
     </div>
   </form>
-</div>
 
-<!-- Add Supplier Modal -->
-<div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="addSupplierModalLabel">Add Supplier</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <label class="form-label">Supplier Name</label>
-        <input #newSupplierName type="text" class="form-control" placeholder="e.g. Acme Traders" />
-      </div>
-      <div class="modal-footer">
-        <button type="button"
-                class="btn btn-primary"
-                data-bs-dismiss="modal"
-                (click)="addSupplier(newSupplierName.value); newSupplierName.value=''">
-          Save Supplier
-        </button>
+  <!-- Add Supplier Modal -->
+  <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addSupplierModalLabel">Add Supplier</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Supplier Name</label>
+          <input #newSupplierName type="text" class="form-control" placeholder="e.g. Acme Traders" />
+        </div>
+        <div class="modal-footer">
+          <button type="button"
+                  class="btn btn-primary"
+                  data-bs-dismiss="modal"
+                  (click)="addSupplier(newSupplierName.value); newSupplierName.value=''">
+            Save Supplier
+          </button>
+        </div>
       </div>
     </div>
   </div>
