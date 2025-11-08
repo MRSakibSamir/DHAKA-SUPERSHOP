@@ -1,14 +1,15 @@
-<!-- sales-list.component.html -->
 <div class="container py-4">
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="card shadow-sm">
+
+      <!-- Header -->
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Sales</h5>
         <span class="badge bg-dark">Status: {{ form.get('status')?.value }}</span>
       </div>
 
       <div class="card-body">
-        <!-- Meta Row 1: PO, Date, Expected Date, Status -->
+        <!-- Meta Row 1 -->
         <div class="row g-3">
           <div class="col-md-3">
             <label class="form-label">PO Number</label>
@@ -25,6 +26,7 @@
           <div class="col-md-3">
             <label class="form-label">Status</label>
             <select class="form-select" formControlName="status">
+              <option [ngValue]="null" disabled>Select status</option>
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
               <option value="Received">Received</option>
@@ -39,7 +41,7 @@
           <textarea rows="2" class="form-control" formControlName="notes" placeholder="Optional notes"></textarea>
         </div>
 
-        <!-- Items -->
+        <!-- Items Section -->
         <div class="mt-4">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h6 class="mb-0">Items</h6>
@@ -53,26 +55,30 @@
                   <th style="width: 12%">Qty</th>
                   <th style="width: 18%">Cost</th>
                   <th style="width: 18%">Amount</th>
-                  <th style="width: 12%"></th>
+                  <th style="width: 12%">Action</th>
                 </tr>
               </thead>
+
               <tbody>
                 <tr *ngFor="let row of items.controls; let i = index" [formGroupName]="i">
                   <td>
                     <select class="form-select" formControlName="productId" (change)="onProductChange(i)">
-                      <option value="" disabled>Select product</option>
-                      <option *ngFor="let p of products" [value]="p.id">{{ p.name }}</option>
+                      <option [ngValue]="null" disabled>Select product</option>
+                      <option *ngFor="let p of products" [ngValue]="p.id">{{ p.name }}</option>
                     </select>
                   </td>
+
                   <td>
                     <input class="form-control text-end" type="number" min="1" formControlName="qty" />
                   </td>
+
                   <td>
                     <div class="input-group">
                       <span class="input-group-text">৳</span>
                       <input class="form-control text-end" type="number" min="0" step="0.01" formControlName="cost" />
                     </div>
                   </td>
+
                   <td>
                     <div class="input-group">
                       <span class="input-group-text">৳</span>
@@ -80,14 +86,19 @@
                              [value]="lineTotal(i) | number:'1.2-2'" readonly tabindex="-1" />
                     </div>
                   </td>
+
                   <td class="text-center">
-                    <button type="button" class="btn btn-outline-danger btn-sm"
-                            (click)="removeItem(i)" [disabled]="items.length === 0">
-                      Remove
+                    <!-- ✅ Properly added Remove button -->
+                    <button type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            (click)="removeItem(i)"
+                            [disabled]="items.length <= 1">
+                      <i class="bi bi-trash"></i> Remove
                     </button>
                   </td>
                 </tr>
               </tbody>
+
               <tfoot class="table-light">
                 <tr>
                   <td class="text-end fw-semibold" colspan="3">Subtotal</td>
@@ -97,7 +108,7 @@
             </table>
           </div>
 
-          <!-- Add Item button -->
+          <!-- Add Item Button -->
           <div class="mt-2" style="width: 10%;">
             <button type="button" class="btn btn-outline-primary btn-sm w-100" (click)="addItem()">
               <i class="bi bi-plus-lg"></i> Add Item
@@ -105,7 +116,7 @@
           </div>
         </div>
 
-        <!-- Summary -->
+        <!-- Summary Section -->
         <div class="row g-3 mt-4">
           <div class="col-md-4 ms-auto">
             <div class="card border-0 bg-light">
@@ -155,20 +166,15 @@
 
       </div>
 
+      <!-- Footer Buttons -->
       <div class="card-footer d-flex justify-content-end gap-2">
         <button type="submit" class="btn btn-success" [disabled]="form.invalid || subtotal <= 0">
           Save
         </button>
-
-        <!-- <button type="button" class="btn btn-primary" [disabled]="form.invalid || subtotal <= 0" (click)="downloadPDF()">
-          🧾 Download PDF
-        </button> -->
-
         <button type="button" class="btn btn-outline-secondary" (click)="onReset()">
           Reset
         </button>
       </div>
-
     </div>
   </form>
 </div>

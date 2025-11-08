@@ -1,15 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, AbstractControl } from '@angular/forms';
-
-// pdfMake
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import * as pdfMake from 'pdfmake/build/pdfmake';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
-(pdfMake as any).vfs = (pdfFonts as any).pdfMake?.vfs || (pdfFonts as any).vfs;
-
 import { SalesService, CreateSalePayload } from '../../services/sales.service';
 
 interface Supplier {
@@ -24,7 +14,7 @@ interface Product {
 }
 
 interface SaleItem {
-  productId: number;
+  productId: number | null;
   cost: number;
   qty: number;
 }
@@ -33,7 +23,7 @@ interface SalePayload {
   poNumber: string;
   date: string;
   expectedDate: string;
-  supplierId: number;
+  supplierId: number | null;
   status: 'Pending' | 'Approved' | 'Received' | 'Cancelled';
   items: SaleItem[];
   shipping: number;
@@ -70,6 +60,11 @@ export class SalesListComponent implements OnInit {
   constructor(private fb: FormBuilder, private salesservice: SalesService) {}
 
   ngOnInit(): void {
+    this.buildForm();
+  }
+
+  // ----- form init / reset helpers -----
+  private buildForm(): void {
     this.form = this.fb.group({
       poNumber: [this.generatePoNumber(), Validators.required],
       date: [this.today(), Validators.required],
@@ -84,7 +79,37 @@ export class SalesListComponent implements OnInit {
     });
   }
 
-  // --- helpers ---
+  // ----- reset -----
+  onReset(): void {
+    // Reset scalar controls to defaults
+    this.form.reset({
+      poNumber: this.generatePoNumber(),
+      date: this.today(),
+      expectedDate: this.today(),
+      supplierId: null,
+      status: 'Pending',
+      shipping: 0,
+      discount: 0,
+      taxRate: 5,
+      notes: ''
+    });
+
+    // Rebuild items array to a single fresh row
+    const itemsFA = this.form.get('items') as FormArray;
+    while (itemsFA.length) itemsFA.removeAt(0);
+    itemsFA.push(this.createItem());
+
+    // Clean state
+    this.form.markAsPristine();
+    this.form.markAsUntouched();
+    this.form.updateValueAndValidity();
+  }
+
+  // ----- utilities -----
+  trackByIndex(_idx: number, _item: any) {
+    return _idx;
+  }
+
   private today(): string {
     return new Date().toISOString().slice(0, 10);
   }
@@ -104,7 +129,7 @@ export class SalesListComponent implements OnInit {
     return Number.isFinite(n) ? n : 0;
   }
 
-  // --- items form ---
+  // ----- items form -----
   get items(): FormArray<FormGroup> {
     return this.form.get('items') as FormArray<FormGroup>;
   }
@@ -136,7 +161,7 @@ export class SalesListComponent implements OnInit {
     }
   }
 
-  // --- calculations ---
+  // ----- calculations -----
   lineTotal(i: number): number {
     const g = this.items.at(i) as FormGroup;
     const qty = this.toNumber(g.get('qty')?.value);
@@ -145,7 +170,10 @@ export class SalesListComponent implements OnInit {
   }
 
   get subtotal(): number {
-    return this.items.controls.reduce((sum: number, _ctrl: AbstractControl, i: number) => sum + this.lineTotal(i), 0);
+    return this.items.controls.reduce(
+      (sum: number, _ctrl: AbstractControl, i: number) => sum + this.lineTotal(i),
+      0
+    );
   }
 
   get shipping(): number {
@@ -167,14 +195,14 @@ export class SalesListComponent implements OnInit {
     return this.subtotal + this.shipping - this.discount + this.taxAmount;
   }
 
-  // --- submit ---
+  // ----- submit -----
   onSubmit(): void {
     if (this.form.invalid || this.subtotal <= 0) {
       this.form.markAllAsTouched();
       return;
     }
 
-    // Build your internal payload (used for PDF and display)
+    // Build payload for API (no PDF work here)
     const base = this.form.value as Omit<SalePayload, 'subtotal' | 'taxAmount' | 'grandTotal'>;
     const payload: SalePayload = {
       ...base,
@@ -186,19 +214,18 @@ export class SalesListComponent implements OnInit {
       grandTotal: this.grandTotal
     };
 
-    // Map to service payload shape (price instead of cost)
     const payloadForApi: CreateSalePayload = {
       poNumber: payload.poNumber,
       date: payload.date,
       dueDate: payload.expectedDate,
-      supplierId: payload.supplierId,
+      supplierId: payload.supplierId ?? undefined,
       status: payload.status,
       notes: payload.notes,
       shipping: payload.shipping,
       discount: payload.discount,
       taxRate: payload.taxRate,
       items: payload.items.map(it => ({
-        productId: it.productId,
+        productId: it.productId as number,
         qty: it.qty,
         price: it.cost
       })),
@@ -207,129 +234,15 @@ export class SalesListComponent implements OnInit {
       grandTotal: payload.grandTotal
     };
 
-    // ✅ Correct variable used here
     this.salesservice.createSale(payloadForApi).subscribe({
-      next: (_res: unknown) => {
+      next: () => {
         alert('✅ Sale saved successfully!');
-        this.generatePDF(payload);
-
-        // Reset form cleanly
-        this.form.reset({
-          poNumber: this.generatePoNumber(),
-          date: this.today(),
-          expectedDate: this.today(),
-          supplierId: null,
-          status: 'Pending',
-          shipping: 0,
-          discount: 0,
-          taxRate: 5,
-          notes: ''
-        });
-
-        // Reset items to a single fresh row
-        while (this.items.length) this.items.removeAt(0);
-        this.addItem();
+        this.onReset(); // <- use the shared reset logic
       },
       error: (err: unknown) => {
         console.error('Save failed:', err);
         alert('❌ Failed to save sale!');
       }
     });
-  }
-
-  onReset(): void {
-    // Full page refresh (your earlier requirement)
-    window.location.reload();
-  }
-
-  // --- PDF generation ---
-  private generatePDF(data: SalePayload): void {
-    const itemsTable = (data.items || []).map((item: SaleItem, i: number) => {
-      const product = this.products.find(p => p.id === Number(item.productId));
-      const qty = this.toNumber(item.qty);
-      const cost = this.toNumber(item.cost);
-      return [
-        { text: i + 1, alignment: 'center' },
-        { text: product ? product.name : 'Unknown', alignment: 'left' },
-        { text: qty.toString(), alignment: 'center' },
-        { text: `৳ ${cost.toFixed(2)}`, alignment: 'right' },
-        { text: `৳ ${(qty * cost).toFixed(2)}`, alignment: 'right' }
-      ];
-    });
-
-    const docDefinition: any = {
-      content: [
-        { text: 'INVOICE', style: 'header', alignment: 'center' },
-        { text: `PO Number: ${data.poNumber}`, margin: [0, 5, 0, 2] },
-        { text: `Date: ${data.date}`, margin: [0, 0, 0, 10] },
-
-        { text: 'Items', style: 'subheader' },
-        {
-          table: {
-            widths: ['auto', '*', 'auto', 'auto', 'auto'],
-            body: [
-              [
-                { text: 'SL', bold: true },
-                { text: 'Product', bold: true },
-                { text: 'Qty', bold: true },
-                { text: 'Cost', bold: true },
-                { text: 'Amount', bold: true }
-              ],
-              ...itemsTable
-            ]
-          },
-          layout: 'lightHorizontalLines',
-          margin: [0, 5, 0, 10]
-        },
-
-        {
-          columns: [
-            { width: '*', text: '' },
-            {
-              width: 'auto',
-              table: {
-                body: [
-                  ['Subtotal:', `৳ ${data.subtotal.toFixed(2)}`],
-                  ['Shipping:', `৳ ${data.shipping.toFixed(2)}`],
-                  ['Discount:', `৳ ${data.discount.toFixed(2)}`],
-                  ['Tax:', `৳ ${data.taxAmount.toFixed(2)}`],
-                  [{ text: 'Grand Total:', bold: true }, { text: `৳ ${data.grandTotal.toFixed(2)}`, bold: true }]
-                ]
-              },
-              layout: 'noBorders'
-            }
-          ]
-        },
-
-        { text: 'Thank you for your business!', alignment: 'center', margin: [0, 20, 0, 0] }
-      ],
-      styles: {
-        header: { fontSize: 18, bold: true },
-        subheader: { fontSize: 14, bold: true }
-      },
-      defaultStyle: { fontSize: 10 }
-    };
-
-    (pdfMake as any).createPdf(docDefinition).download(`${data.poNumber}.pdf`);
-  }
-
-  // Optional: still available if user clicks the separate PDF button
-  downloadPDF(): void {
-    if (this.form.invalid || this.subtotal <= 0) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    const data: SalePayload = {
-      ...(this.form.value as any),
-      shipping: this.shipping,
-      discount: this.discount,
-      taxRate: this.toNumber(this.form.get('taxRate')?.value),
-      subtotal: this.subtotal,
-      taxAmount: this.taxAmount,
-      grandTotal: this.grandTotal
-    };
-
-    this.generatePDF(data);
   }
 }
