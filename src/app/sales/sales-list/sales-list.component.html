@@ -1,3 +1,4 @@
+<!-- sales-list.component.html -->
 <div class="container py-4">
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="card shadow-sm">
@@ -7,7 +8,7 @@
       </div>
 
       <div class="card-body">
-        <!-- Meta Row 1 -->
+        <!-- Meta Row 1: PO, Date, Expected Date, Status -->
         <div class="row g-3">
           <div class="col-md-3">
             <label class="form-label">PO Number</label>
@@ -21,33 +22,7 @@
             <label class="form-label">Expected Date</label>
             <input class="form-control" type="date" formControlName="expectedDate" />
           </div>
-        </div>
-
-        <!-- Meta Row 2: Supplier + Status -->
-        <div class="row g-3 mt-0">
-          <div class="col-md-6">
-            <label class="form-label">Supplier</label>
-            <select class="form-select" formControlName="supplierId">
-              <option value="" disabled>Select supplier</option>
-              <option *ngFor="let s of suppliers" [value]="s.id">{{ s.name }}</option>
-            </select>
-
-            <!-- New button moved under the dropdown -->
-            <div class="mt-2">
-              <button type="button"
-                      class="btn btn-sm btn-outline-primary"
-                      data-bs-toggle="modal"
-                      data-bs-target="#addSupplierModal">
-                <i class="bi bi-plus-lg"></i> New
-              </button>
-            </div>
-
-            <div class="form-text" *ngIf="!suppliers?.length">
-              No suppliers yet — click <b>New</b> to add.
-            </div>
-          </div>
-
-          <div class="col-md-6">
+          <div class="col-md-3">
             <label class="form-label">Status</label>
             <select class="form-select" formControlName="status">
               <option value="Pending">Pending</option>
@@ -107,7 +82,7 @@
                   </td>
                   <td class="text-center">
                     <button type="button" class="btn btn-outline-danger btn-sm"
-                            (click)="removeItem(i)" [disabled]="items.length === 1">
+                            (click)="removeItem(i)" [disabled]="items.length === 0">
                       Remove
                     </button>
                   </td>
@@ -122,7 +97,7 @@
             </table>
           </div>
 
-          <!-- Add Item button UNDER the items table, aligned to Product column width -->
+          <!-- Add Item button -->
           <div class="mt-2" style="width: 10%;">
             <button type="button" class="btn btn-outline-primary btn-sm w-100" (click)="addItem()">
               <i class="bi bi-plus-lg"></i> Add Item
@@ -181,38 +156,19 @@
       </div>
 
       <div class="card-footer d-flex justify-content-end gap-2">
-        <button type="submit" class="btn btn-success"
-                [disabled]="form.invalid || subtotal <= 0">
+        <button type="submit" class="btn btn-success" [disabled]="form.invalid || subtotal <= 0">
           Save
         </button>
-        <button type="button" class="btn btn-outline-secondary" (click)="form.reset(form.value)">
-          Reset (soft)
+
+        <!-- <button type="button" class="btn btn-primary" [disabled]="form.invalid || subtotal <= 0" (click)="downloadPDF()">
+          🧾 Download PDF
+        </button> -->
+
+        <button type="button" class="btn btn-outline-secondary" (click)="onReset()">
+          Reset
         </button>
       </div>
+
     </div>
   </form>
-
-  <!-- Add Supplier Modal -->
-  <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="addSupplierModalLabel">Add Supplier</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <label class="form-label">Supplier Name</label>
-          <input #newSupplierName type="text" class="form-control" placeholder="e.g. Acme Traders" />
-        </div>
-        <div class="modal-footer">
-          <button type="button"
-                  class="btn btn-primary"
-                  data-bs-dismiss="modal"
-                  (click)="addSupplier(newSupplierName.value); newSupplierName.value=''">
-            Save Supplier
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>

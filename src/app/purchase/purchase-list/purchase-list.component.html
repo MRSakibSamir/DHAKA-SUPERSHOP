@@ -1,6 +1,6 @@
 <div class="container my-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">Purchase Entry</h3>
+    <h3 class="mb-0">Purchase</h3>
     <span class="badge bg-dark">Status: {{ form.get('status')?.value }}</span>
   </div>
 
@@ -71,7 +71,7 @@
                     type="button"
                     class="btn btn-sm btn-danger"
                     (click)="removeItem(i)"
-                    [disabled]="items.length === 1"
+                    [disabled]="items.length === 0"
                   >
                     <i class="bi bi-x-lg"></i>
                   </button>
